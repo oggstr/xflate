@@ -2,7 +2,7 @@ use std::io::Write;
 
 use flate2::write::{DeflateDecoder, DeflateEncoder};
 
-use crate::{XmlB, XmlBCompress, XmlBCompressor, XmlBDecompressor, XmlBError, XmlN, XmlS};
+use crate::{XmlB, XmlBCompress, XmlBCompressor, XmlBDecompressor, XmlBError, XmlS};
 
 pub struct XmlBDeflateBackend {
     opt: XmlBCompress,

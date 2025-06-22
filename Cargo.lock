@@ -68,7 +68,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "nsip"
+name = "xflate"
 version = "0.1.0"
 dependencies = [
  "flate2",

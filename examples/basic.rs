@@ -1,6 +1,6 @@
 use std::io::Read;
 
-use nsip::{self, XmlBCompressor};
+use xflate::{self, XmlBCompressor};
 
 static BASIC_XML: &str = r#"<section xml:lang="en">
     <title>Basic XML Document</title>
@@ -27,16 +27,16 @@ fn main() {
 
     const SYMBOL_SIZE: u8 = 2;
 
-    let mut sym_table = nsip::XmlNDynamicSymbolTable::new(SYMBOL_SIZE);
-    let mut tag_table = nsip::XmlNDynamicTagTable::new();
+    let mut sym_table = xflate::XmlNDynamicSymbolTable::new(SYMBOL_SIZE);
+    let mut tag_table = xflate::XmlNDynamicTagTable::new();
 
-    println!("===== NSIP Compression =====");
+    println!("===== xflate Compression =====");
     println!("");
 
     println!("XML: {}", xml);
     println!("");
 
-    let xmln = match nsip::encode_xmln(file, &mut sym_table, &mut tag_table) {
+    let xmln = match xflate::encode_xmln(file, &mut sym_table, &mut tag_table) {
         Ok(xmln) => xmln,
         Err(err) => {
             panic!("Error encoding XMLN: {:?}", err);
@@ -45,7 +45,7 @@ fn main() {
     println!("XMLN: {}", xmln);
     println!("");
 
-    let xmls = match nsip::encode_xmls(xmln.as_str()) {
+    let xmls = match xflate::encode_xmls(xmln.as_str()) {
         Ok(xmls) => xmls,
         Err(err) => {
             panic!("Error encoding XMLS: {:?}", err);
@@ -54,7 +54,7 @@ fn main() {
     println!("XMLS: {:?}", xmls);
     println!("");
 
-    let backend = nsip::XmlBDeflateBackend::new(nsip::XmlBCompress::Fast);
+    let backend = xflate::XmlBDeflateBackend::new(xflate::XmlBCompress::Fast);
     let xmlb = match backend.compress(&xmls) {
         Ok(xmlb) => xmlb,
         Err(err) => {
@@ -64,7 +64,7 @@ fn main() {
     println!("XMLB: {:?}", xmlb);
     println!("");
 
-    println!("=== NSIP Compression End ===");
+    println!("=== xflate Compression End ===");
     println!("");
 
     println!("{}", sym_table);
@@ -72,13 +72,13 @@ fn main() {
     println!("{}", tag_table);
     println!("");
 
-    println!("===  NSIP Decompression  ===");
+    println!("===  xflate Decompression  ===");
     println!("");
 
     println!("XMLB: {:?}", xmlb);
     println!("");
 
-    let xmls = match nsip::decode_xmlb(&xmlb, &backend) {
+    let xmls = match xflate::decode_xmlb(&xmlb, &backend) {
         Ok(xmls) => xmls,
         Err(err) => {
             panic!("Error decompressing XMLB: {:?}", err);
@@ -87,7 +87,7 @@ fn main() {
     println!("XMLS: {:?}", xmls);
     println!("");
 
-    let xmln = match nsip::decode_xmls(&xmls) {
+    let xmln = match xflate::decode_xmls(&xmls) {
         Ok(xmln) => xmln,
         Err(err) => {
             panic!("Error decoding XMLS: {:?}", err);
@@ -96,14 +96,14 @@ fn main() {
     println!("XMLN: {}", xmln);
     println!("");
 
-    let xml = nsip::decode_xmln(xmln.as_str(), &mut sym_table, &mut tag_table);
+    let xml = xflate::decode_xmln(xmln.as_str(), &mut sym_table, &mut tag_table);
     if let Err(err) = xml {
         panic!("Error decoding XMLN: {:?}", err);
     }
     println!("XML: {}", xml.unwrap());
     println!("");
 
-    println!("=== NSIP Decompression End ===");
+    println!("=== xflate Decompression End ===");
     println!("");
 
     println!("=======     Results     =======");
