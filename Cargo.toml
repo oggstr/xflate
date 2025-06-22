@@ -3,5 +3,12 @@ name = "nsip"
 version = "0.1.0"
 edition = "2024"
 
+[features]
+fast = ["flate2/zlib-rs"]
+
 [dependencies]
+itertools = "0.14.0"
 xml-rs = "0.8.26"
+
+[dependencies.flate2]
+version = "1.1.2"
