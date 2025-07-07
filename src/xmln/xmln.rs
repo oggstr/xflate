@@ -6,22 +6,19 @@ use std::str::Chars;
 use xml::ParserConfig;
 use xml::reader::XmlEvent;
 
+use crate::XFlateError;
 use crate::XmlNSymbolTable;
 use crate::XmlNTagTable;
+use crate::consume_until_space;
+use crate::util::consume_until_whitespace;
 
 pub type XmlN = String;
-
-#[derive(Debug)]
-pub enum XmlNError {
-    EncodingError(String),
-    DecodingError(String),
-}
 
 pub fn encode_xmln<D, S, T>(
     data: D,
     sym_table: &mut S,
     tag_table: &mut T,
-) -> Result<XmlN, XmlNError>
+) -> Result<XmlN, XFlateError>
 where
     D: Read,
     S: XmlNSymbolTable,
@@ -37,19 +34,17 @@ where
     for e in parser {
         match e {
             Ok(XmlEvent::StartDocument {
-                version,
-                encoding,
-                standalone,
+                version: _,
+                encoding: _,
+                standalone: _,
             }) => {
-                println!(
+                /* println!(
                     "Start Document: version={}, encoding={}, standalone={:?}",
                     version, encoding, standalone
-                );
+                ); */
             }
 
-            Ok(XmlEvent::EndDocument) => {
-                println!("End Document");
-            }
+            Ok(XmlEvent::EndDocument) => { /* println!("End Document"); */ }
 
             Ok(XmlEvent::StartElement {
                 name: tag,
@@ -83,19 +78,22 @@ where
             }
 
             Ok(XmlEvent::CData(data)) => {
-                println!("CData: {}", data);
+                panic!("Not supported CData: {}", data);
             }
 
             Ok(XmlEvent::ProcessingInstruction { name, data }) => {
-                println!("Processing Instruction: name={}, data={:?}", name, data);
+                panic!(
+                    "Not supported Processing Instruction: name={}, data={:?}",
+                    name, data
+                );
             }
 
             Ok(XmlEvent::Comment(data)) => {
-                println!("Comment: {}", data);
+                panic!("Not supported Comment: {}", data);
             }
 
             Err(e) => {
-                panic!("Error parsing XML: {}", e);
+                return Err(XFlateError::XmlNError(format!("XML parsing error: {}", e)));
             }
         }
 
@@ -109,7 +107,11 @@ where
     Ok(xmln)
 }
 
-fn put_symbols<S>(translate: &mut String, token: String, sym_table: &mut S) -> Result<(), XmlNError>
+fn put_symbols<S>(
+    translate: &mut String,
+    token: String,
+    sym_table: &mut S,
+) -> Result<(), XFlateError>
 where
     S: XmlNSymbolTable,
 {
@@ -118,7 +120,7 @@ where
     for c in token.chars() {
         let enc = sym_table
             .encode(c)
-            .ok_or_else(|| XmlNError::EncodingError(format!("Failed to encode symbol: {}", c)))?;
+            .ok_or_else(|| XFlateError::XmlNError(format!("Failed to encode symbol: {}", c)))?;
         translate.push_str(enc);
     }
     Ok(())
@@ -128,7 +130,7 @@ fn put_elem_start_tag<T>(
     translate: &mut String,
     tag: &str,
     tag_table: &mut T,
-) -> Result<(), XmlNError>
+) -> Result<(), XFlateError>
 where
     T: XmlNTagTable,
 {
@@ -136,7 +138,7 @@ where
 
     let enc = tag_table
         .encode(tag)
-        .ok_or_else(|| XmlNError::EncodingError(format!("Failed to encode tag: {}", tag)))?;
+        .ok_or_else(|| XFlateError::XmlNError(format!("Failed to encode tag: {}", tag)))?;
 
     translate.push('T');
     translate.push_str(&enc.to_string());
@@ -148,14 +150,14 @@ fn put_attr_tag<T>(
     translate: &mut String,
     attr_name: &str,
     tag_table: &mut T,
-) -> Result<(), XmlNError>
+) -> Result<(), XFlateError>
 where
     T: XmlNTagTable,
 {
     translate.push(' ');
 
     let enc = tag_table.encode(attr_name).ok_or_else(|| {
-        XmlNError::EncodingError(format!("Failed to encode attribute name: {}", attr_name))
+        XFlateError::XmlNError(format!("Failed to encode attribute name: {}", attr_name))
     })?;
 
     translate.push('A');
@@ -174,7 +176,7 @@ pub fn decode_xmln<S, T>(
     xmln: &str,
     sym_table: &mut S,
     tag_table: &mut T,
-) -> Result<String, XmlNError>
+) -> Result<String, XFlateError>
 where
     S: XmlNSymbolTable,
     T: XmlNTagTable,
@@ -193,20 +195,20 @@ where
                 chars.next(); // Consume whitespace
             }
             // Opening tag
-            ('T', _) => {
+            ('T', Some('0'..='9')) => {
                 chars.next(); // Consume 'T'
 
-                let code_str = consume_until_whitespace(&mut chars);
+                let code_str = consume_until_space(&mut chars);
                 if code_str.is_empty() {
-                    return Err(XmlNError::DecodingError("Empty tag code".to_string()));
+                    return Err(XFlateError::XmlNError("Empty tag code".to_string()));
                 }
 
                 let tag_code: u16 = code_str.parse().map_err(|_| {
-                    XmlNError::DecodingError(format!("Invalid tag code: {}", code_str))
+                    XFlateError::XmlNError(format!("Invalid tag code: {}", code_str))
                 })?;
 
                 let tag = tag_table.decode(tag_code).ok_or_else(|| {
-                    XmlNError::DecodingError(format!("Unknown tag code: {}", tag_code))
+                    XFlateError::XmlNError(format!("Unknown tag code: {}", tag_code))
                 })?;
 
                 decoded.push_str("<");
@@ -225,23 +227,23 @@ where
             ('A', _) => {
                 chars.next(); // Consume 'A'
 
-                let attr_code_str = consume_until_whitespace(&mut chars);
+                let attr_code_str = consume_until_space(&mut chars);
                 if attr_code_str.is_empty() {
-                    return Err(XmlNError::DecodingError("Empty attribute code".to_string()));
+                    return Err(XFlateError::XmlNError("Empty attribute code".to_string()));
                 }
 
                 let attr_code: u16 = attr_code_str.parse().map_err(|_| {
-                    XmlNError::DecodingError(format!("Invalid attribute code: {}", attr_code_str))
+                    XFlateError::XmlNError(format!("Invalid attribute code: {}", attr_code_str))
                 })?;
 
                 let attr_name = tag_table.decode(attr_code).ok_or_else(|| {
-                    XmlNError::DecodingError(format!("Unknown attribute code: {}", attr_code))
+                    XFlateError::XmlNError(format!("Unknown attribute code: {}", attr_code))
                 })?;
 
                 chars.peek(); // Whitespace
                 // Check if there exists an attribute value
                 let attr_val = match (chars.peek().cloned(), chars.peek().cloned()) {
-                    (Some('0'..='9'), Some('0'..='9')) => {
+                    (Some('1'..='9'), Some('1'..='9')) => {
                         chars.next(); // Consume whitespace
                         decode_text(&mut chars, sym_table)?
                     }
@@ -271,21 +273,21 @@ where
                     decoded.push_str(&tag);
                     decoded.push('>');
                 } else {
-                    return Err(XmlNError::DecodingError(
+                    return Err(XFlateError::XmlNError(
                         "Unmatched closing tag found".to_string(),
                     ));
                 }
             }
 
             // Text content
-            ('0'..='9', Some('0'..='9')) => {
+            ('0'..='9', Some('1'..='9')) => {
                 let text = decode_text(&mut chars, sym_table)?;
                 decoded.push_str(&text);
             }
 
             // Unexpected character
             _ => {
-                return Err(XmlNError::DecodingError(format!(
+                return Err(XFlateError::XmlNError(format!(
                     "Unexpected character in XMLN: {}",
                     token,
                 )));
@@ -298,7 +300,7 @@ where
     Ok(decoded)
 }
 
-fn decode_text<S>(chars: &mut MultiPeek<Chars<'_>>, sym_table: &S) -> Result<String, XmlNError>
+fn decode_text<S>(chars: &mut MultiPeek<Chars<'_>>, sym_table: &S) -> Result<String, XFlateError>
 where
     S: XmlNSymbolTable,
 {
@@ -306,7 +308,7 @@ where
     let code_strings = consume_until_whitespace(chars)
         .chars()
         .collect::<Vec<char>>()
-        .chunks(sym_table.get_symbol_size() as usize)
+        .chunks(sym_table.code_size() as usize)
         .map(|chunk| chunk.iter().collect::<String>())
         .collect::<Vec<String>>();
 
@@ -315,7 +317,7 @@ where
         match sym_table.decode(&code_str) {
             Some(symbol) => result.push(symbol),
             None => {
-                return Err(XmlNError::DecodingError(format!(
+                return Err(XFlateError::XmlNError(format!(
                     "Unknown symbol code: {}",
                     code_str
                 )));
@@ -324,19 +326,4 @@ where
     }
 
     Ok(result)
-}
-
-fn consume_until_whitespace(chars: &mut MultiPeek<Chars<'_>>) -> String {
-    let mut result: String = String::new();
-    while let Some(c) = chars.peek().cloned() {
-        if c.is_whitespace() {
-            // Avoid side effects
-            chars.reset_peek();
-            break;
-        }
-        chars.next(); // Consume the character
-        result.push(c);
-    }
-
-    result
 }

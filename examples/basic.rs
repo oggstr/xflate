@@ -1,6 +1,7 @@
 use std::io::Read;
 
-use xflate::{self, XmlBCompressor};
+use itertools::Itertools;
+use xflate::{self, XmlBCompressor, XmlNSymbolTable};
 
 static BASIC_XML: &str = r#"<section xml:lang="en">
     <title>Basic XML Document</title>

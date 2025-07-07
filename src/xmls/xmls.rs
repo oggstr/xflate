@@ -1,9 +1,4 @@
-use crate::XmlN;
-
-#[derive(Debug)]
-pub enum XmlsError {
-    InvalidSymbol(String),
-}
+use crate::{XFlateError, XmlN};
 
 pub type XmlS = Vec<u8>;
 
@@ -18,9 +13,9 @@ pub type XmlS = Vec<u8>;
 /// # Returns
 /// * `Ok(Vec<u8>)` - A vector of bytes representing the encoded XMLS data
 /// * `Err(XmlsError)` - An error if the input contains invalid symbols
-pub fn encode_xmls(xml_n: &str) -> Result<XmlS, XmlsError> {
-    let mut chars = xml_n.chars();
-    let mut encoding = XmlS::with_capacity((xml_n.chars().count() + 1) / 2);
+pub fn encode_xmls(xmln: &str) -> Result<XmlS, XFlateError> {
+    let mut chars = xmln.chars();
+    let mut encoding = XmlS::with_capacity((xmln.len() + 1) / 2);
 
     while let Some(left) = chars.next() {
         let lft_nibble = encode_nibble(left)?;
@@ -39,13 +34,15 @@ pub fn encode_xmls(xml_n: &str) -> Result<XmlS, XmlsError> {
     Ok(encoding)
 }
 
-pub fn decode_xmls(xml_s: &[u8]) -> Result<XmlN, XmlsError> {
-    let mut decoded = String::with_capacity(xml_s.len() * 2);
+pub fn decode_xmls(xmls: &[u8]) -> Result<XmlN, XFlateError> {
+    let mut decoded = String::with_capacity(xmls.len() * 2);
 
-    for &byte in xml_s {
+    for &byte in xmls {
         let (lft_nibble, rgt_nibble) = split(byte);
-        decoded.push(decode_nibble(lft_nibble)?);
+
+        // There is one byte at the beginning that can be invalid
         if rgt_nibble != 0 {
+            decoded.push(decode_nibble(lft_nibble)?);
             decoded.push(decode_nibble(rgt_nibble)?);
         }
     }
@@ -53,7 +50,7 @@ pub fn decode_xmls(xml_s: &[u8]) -> Result<XmlN, XmlsError> {
     Ok(decoded)
 }
 
-fn encode_nibble(symbol: char) -> Result<u8, XmlsError> {
+fn encode_nibble(symbol: char) -> Result<u8, XFlateError> {
     match symbol {
         ' ' => Ok(0x1),
         'T' => Ok(0x2),
@@ -68,14 +65,14 @@ fn encode_nibble(symbol: char) -> Result<u8, XmlsError> {
         '7' => Ok(0xB),
         '8' => Ok(0xC),
         '9' => Ok(0xD),
-        _ => Err(XmlsError::InvalidSymbol(format!(
-            "Invalid symbol: {}",
+        _ => Err(XFlateError::XmlSError(format!(
+            "Unable to encode invalid symbol: {}",
             symbol
         ))),
     }
 }
 
-fn decode_nibble(nibble: u8) -> Result<char, XmlsError> {
+fn decode_nibble(nibble: u8) -> Result<char, XFlateError> {
     match nibble {
         0x1 => Ok(' '),
         0x2 => Ok('T'),
@@ -90,8 +87,8 @@ fn decode_nibble(nibble: u8) -> Result<char, XmlsError> {
         0xB => Ok('7'),
         0xC => Ok('8'),
         0xD => Ok('9'),
-        _ => Err(XmlsError::InvalidSymbol(format!(
-            "Invalid nibble: {}",
+        _ => Err(XFlateError::XmlSError(format!(
+            "Unable to decode invalid nibble: {}",
             nibble
         ))),
     }

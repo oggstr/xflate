@@ -1,4 +1,7 @@
 <section xml:lang="en">
     <title>Basic XML Document</title>
-    <para>This is a simple XML document</para>
+    <para>Lorem ipsum dolor sit amet, consectetur adipiscing elit.</para>
+    <para>Mauris malesuada faucibus ante sed tristique. Vestibulum posuere elit vel lobortis consequat. Aenean rhoncus elit vitae neque eleifend volutpat. Sed ullamcorper suscipit leo, eu imperdiet mauris. Aenean eu sodales dolor, ac iaculis nibh. In ultricies tempor malesuada. Nulla facilisi. Nulla felis diam, egestas a eros sed, porttitor luctus turpis. Donec maximus ac dolor ut feugiat. Proin vitae congue sem. Vivamus et ligula hendrerit, malesuada neque vel, suscipit metus.</para>
+    <para>In pulvinar felis vitae nisi maximus, eget gravida quam ultricies. Phasellus non tincidunt quam, non dignissim ex. Cras efficitur velit eget ipsum lacinia ullamcorper. Aenean nisl enim, consequat sit amet lectus eu, posuere aliquet justo. Sed ut tempus eros. Aenean accumsan ex eu odio feugiat scelerisque. Donec tristique lorem sit amet luctus condimentum. </para>
+    <para>In rutrum dapibus auctor. Proin tempor lacus magna, quis maximus odio faucibus ut. Sed tempus massa a nulla iaculis dictum. Vivamus tortor sapien, aliquet id lacus imperdiet, accumsan molestie dolor. Praesent posuere, magna non ornare tincidunt, lorem libero luctus neque, sed porttitor eros nulla quis diam. Vivamus bibendum, ex sed auctor egestas, dolor est congue ipsum, in laoreet arcu ex ac metus. Suspendisse pretium ante vel nisl eleifend, vel condimentum nunc laoreet. Vestibulum sollicitudin sed velit et pellentesque. Curabitur in magna imperdiet mi semper sodales. Aenean aliquet a turpis nec ullamcorper. </para>
 </section>
