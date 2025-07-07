@@ -4,6 +4,8 @@ This is a very rough implementation of [Compression of XML and JSON API Response
 
 It's not intended for use. Rather, it's as a means of testing the feasibility of the algorithm for real data.
 
+This cannot be stated enough. The code is quite bad in places.
+
 ## Why is it interesting?
 
 In the paper the authors make a domain simplification along the lines of "the majority of content on the web is English, therefore we can focus on that".
